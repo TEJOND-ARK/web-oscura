@@ -9,7 +9,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="js/firebase.js"></script>
+    <script src="firebase.js"></script>
 </head>
 <body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
 
@@ -122,7 +122,6 @@
     </div>
 
     <script>
-        // Funciones visuales para abrir y cerrar la ventanita flotante de login
         function abrirModalLogin() {
             document.getElementById('modal-login').classList.add('is-active');
         }
@@ -130,12 +129,11 @@
             document.getElementById('modal-login').classList.remove('is-active');
         }
 
-        // Captura los datos y llama a las funciones de tu app.js
         function ejecutarLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
             if(email && pass) {
-                iniciarSesion(email, pass); // Esta función vive en tu app.js
+                iniciarSesion(email, pass); 
             } else {
                 alert("Por favor, llena todos los campos.");
             }
@@ -145,7 +143,6 @@
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
             if(email && pass) {
-                // Firebase registra el usuario directamente
                 firebase.auth().createUserWithEmailAndPassword(email, pass)
                     .then(() => { alert("¡Cuenta creada con éxito!"); })
                     .catch((error) => { alert("Error al registrar: " + error.message); });
@@ -155,6 +152,6 @@
         }
     </script>
 
-    <script src="js/app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
