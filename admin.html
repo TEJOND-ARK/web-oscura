@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel TejónDark - Web Anónima</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
+</head>
+<body style="background-color: #f5f5f5; min-height: 100vh;">
+
+    <nav class="navbar is-dark">
+        <div class="navbar-brand">
+            <div class="navbar-item">
+                <h1 class="title is-4 has-text-danger-light">🦡 Panel TejónDark</h1>
+            </div>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <button class="button is-danger is-small" onclick="cerrarSesionAdmin()">
+                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="section">
+        <div class="container">
+            <div class="box notification is-black">
+                <h2 class="title is-3">Bienvenido, Administrador Global</h2>
+                <p class="subtitle is-5">Control total del Marketplace de la Web Anónima.</p>
+            </div>
+
+            <div class="columns is-multiline mt-4">
+                <div class="column is-4">
+                    <div class="box has-background-white" style="border-top: 4px solid #3273dc;">
+                        <div class="media">
+                            <div class="media-left">
+                                <span class="icon is-large has-text-info"><i class="fas fa-users fa-2x"></i></span>
+                            </div>
+                            <div class="media-content
