@@ -3,61 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - Web Anónima</title>
+    <title>Web Anónima - El Marketplace Oscuro</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="js/firebase.js"></script>
 </head>
-<body>
-    <nav class="navbar is-danger">
+<body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
+
+    <nav class="navbar is-black" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
-            <span class="navbar-item title is-5 has-text-white" style="margin-bottom: 0;">🕵️‍♂️ Panel TejónDark</span>
+            <a class="navbar-item" href="index.html">
+                <strong class="has-text-danger is-size-4">🥷 Web Anónima</strong>
+            </a>
         </div>
         <div class="navbar-end">
             <div class="navbar-item">
-                <button class="button is-white is-outlined" onclick="cerrarSesionAdmin()">Cerrar Sesión</button>
+                <div class="buttons">
+                    <a class="button is-danger is-light" onclick="abrirModalLogin()">
+                        <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+                        <span>Ingresar</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
+    <section class="hero is-medium is-dark is-bold">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <h1 class="title is-1 has-text-danger">Bienvenido al Mercado Libre Anónimo</h1>
+                <p class="subtitle is-4 mt-2">Compra, vende e intercambia con total privacidad y seguridad.</p>
+            </div>
+        </div>
+    </section>
+
     <section class="section">
         <div class="container">
-            <h1 class="title">Bienvenido, Administrador Global</h1>
-            <p class="subtitle">Control total del Marketplace de la Web Anónima.</p>
+            <h2 class="title is-3 has-text-white mb-5"><i class="fas fa-shopping-bag has-text-danger"></i> Productos Destacados</h2>
             
-            <div class="columns is-multiline mt-5">
+            <div class="columns is-multiline">
                 <div class="column is-4">
-                    <div class="box notification is-info is-light">
-                        <p class="title is-4">Usuarios</p>
-                        <p class="subtitle is-6">Ver y banear cuentas registradas</p>
+                    <div class="card has-background-dark has-text-white">
+                        <div class="card-content">
+                            <p class="title is-5 has-text-danger">Servicio VPN Premium x1 Año</p>
+                            <p class="subtitle is-6 has-text-grey-light">Navegación 100% cifrada sin registros.</p>
+                            <div class="content">
+                                <strong class="has-text-success is-size-5">0.0015 BTC</strong>
+                                <button class="button is-danger is-small is-fullwidth mt-3">Comprar ahora</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="column is-4">
-                    <div class="box notification is-warning is-light">
-                        <p class="title is-4">Productos</p>
-                        <p class="subtitle is-6">Moderar publicaciones del mercado</p>
+                    <div class="card has-background-dark has-text-white">
+                        <div class="card-content">
+                            <p class="title is-5 has-text-danger">Manual de Criptografía Avanzada</p>
+                            <p class="subtitle is-6 has-text-grey-light">Aprende a proteger tus archivos locales.</p>
+                            <div class="content">
+                                <strong class="has-text-success is-size-5">0.0005 BTC</strong>
+                                <button class="button is-danger is-small is-fullwidth mt-3">Comprar ahora</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="column is-4">
-                    <div class="box notification is-danger is-light">
-                        <p class="title is-4">Reportes</p>
-                        <p class="subtitle is-6">Revisar alertas de usuarios</p>
+                    <div class="card has-background-dark has-text-white">
+                        <div class="card-content">
+                            <p class="title is-5 has-text-danger">Hosting Offshore Anónimo</p>
+                            <p class="subtitle is-6 has-text-grey-light">Sube tu web sin dar datos personales.</p>
+                            <div class="content">
+                                <strong class="has-text-success is-size-5">0.0030 BTC</strong>
+                                <button class="button is-danger is-small is-fullwidth mt-3">Comprar ahora</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <div id="modal-login" class="modal">
+        <div class="modal-background" onclick="cerrarModalLogin()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head has-background-black">
+                <p class="modal-card-title has-text-danger"><i class="fas fa-lock"></i> Acceso Seguro</p>
+                <button class="delete" aria-label="close" onclick="cerrarModalLogin()"></button>
+            </header>
+            <section class="modal-card-body has-background-dark has-text-white">
+                
+                <div class="field">
+                    <label class="label has-text-white">Correo Electrónico</label>
+                    <div class="control has-icons-left">
+                        <input id="login-email" class="input is-danger has-background-black has-text-white" type="email" placeholder="ejemplo@anonimo.com">
+                        <span class="icon is-small is-left"><i class="fas fa-envelope"></i></span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label has-text-white">Contraseña</label>
+                    <div class="control has-icons-left">
+                        <input id="login-password" class="input is-danger has-background-black has-text-white" type="password" placeholder="••••••••">
+                        <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
+                    </div>
+                </div>
+
+                <div class="buttons mt-5">
+                    <button class="button is-danger is-fullwidth" onclick="ejecutarLogin()">Iniciar Sesión</button>
+                    <button class="button is-dark is-fullwidth is-borderless" onclick="ejecutarRegistro()">¿No tienes cuenta? Regístrate aquí</button>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
     <script>
-        // Función para salir de la cuenta de admin y volver al inicio
-        function cerrarSesionAdmin() {
-            firebase.auth().signOut().then(() => {
-                window.location.href = "index.html";
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
-            });
+        // Funciones visuales para abrir y cerrar la ventanita flotante de login
+        function abrirModalLogin() {
+            document.getElementById('modal-login').classList.add('is-active');
+        }
+        function cerrarModalLogin() {
+            document.getElementById('modal-login').classList.remove('is-active');
+        }
+
+        // Captura los datos y llama a las funciones de tu app.js
+        function ejecutarLogin() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            if(email && pass) {
+                iniciarSesion(email, pass); // Esta función vive en tu app.js
+            } else {
+                alert("Por favor, llena todos los campos.");
+            }
+        }
+
+        function ejecutarRegistro() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            if(email && pass) {
+                // Firebase registra el usuario directamente
+                firebase.auth().createUserWithEmailAndPassword(email, pass)
+                    .then(() => { alert("¡Cuenta creada con éxito!"); })
+                    .catch((error) => { alert("Error al registrar: " + error.message); });
+            } else {
+                alert("Llena el correo y contraseña para registrarte.");
+            }
         }
     </script>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
