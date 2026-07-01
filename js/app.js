@@ -1,34 +1,46 @@
 firebase.auth().onAuthStateChanged((user) => {
   const urlPath = window.location.pathname;
-
-  // Detecta la página actual de manera compatible con GitHub Pages
-  const esAdmin = urlPath.includes("admin.html");
-  const esIndex = urlPath.includes("index.html") || urlPath.endsWith("/");
+  const paginaActual = urlPath.substring(urlPath.lastIndexOf('/') + 1);
+  const esIndex = paginaActual === "index.html" || paginaActual === "";
 
   if (user) {
-    // Si hay sesión iniciada y está en el login/index
-    if (esIndex) {
-      if (user.email === "tejondark@weboscura.com") {
-        window.location.href = "admin.html"; 
-      } else {
-        // Redirige a los usuarios normales. Asegúrate de crear "dashboard.html" si lo requieres.
-        window.location.href = "dashboard.html"; 
+    // 1. Si es el Administrador Global
+    if (user.email === "tejondark@weboscura.com") {
+      if (esIndex) {
+        window.location.href = "admin.html";
       }
-    }
-    // Si un usuario común intenta forzar la entrada a admin.html
-    if (esAdmin && user.email !== "tejondark@weboscura.com") {
-      alert("Acceso denegado.");
-      window.location.href = "index.html";
+    } else {
+      // 2. Si es un usuario común, consultamos su rol asignado en Firestore
+      const db = firebase.firestore();
+      db.collection("usuarios").doc(user.uid).get()
+        .then((doc) => {
+          if (doc.exists) {
+            const datosUsuario = doc.data();
+            
+            if (datosUsuario.rol === "vendedor") {
+              if (esIndex) window.location.href = "vendedor.html";
+              if (paginaActual === "dashboard.html") window.location.href = "vendedor.html";
+            } 
+            else if (datosUsuario.rol === "cliente") {
+              if (esIndex) window.location.href = "dashboard.html";
+              if (paginaActual === "vendedor.html") window.location.href = "dashboard.html";
+            }
+          } else {
+            console.log("No se encontró el perfil del usuario en Firestore.");
+          }
+        })
+        .catch((error) => {
+          console.error("Error al obtener el rol:", error);
+        });
     }
   } else {
-    // Si no hay sesión e intenta entrar a páginas privadas, lo devuelve al index
+    // Si no hay sesión iniciada e intenta forzar la entrada a zonas privadas
     if (!esIndex) {
       window.location.href = "index.html";
     }
   }
 });
 
-// Función global de inicio de sesión
 function iniciarSesion(email, password) {
   firebase.auth().signInWithEmailAndPassword(email, password)
     .then(() => { 
