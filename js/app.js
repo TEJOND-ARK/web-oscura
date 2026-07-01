@@ -1,16 +1,16 @@
-// --- LÓGICA DE CONTROL DE SESIÓN INTELIGENTE ---
+// --- LÓGICA DE CONTROL DE SESIÓN DEFINITIVA ---
 
 firebase.auth().onAuthStateChanged((user) => {
-  // Guardamos en qué página está el navegador actualmente
-  const paginaActual = window.location.pathname;
+  // Obtenemos el nombre exacto del archivo actual (ej: index.html, admin.html)
+  const urlPath = window.location.pathname;
+  const paginaActual = urlPath.substring(urlPath.lastIndexOf('/') + 1);
 
   if (user) {
     console.log("Usuario con sesión activa:", user.email);
     
-    // 🕵️‍♂️ Solo redirige automáticamente si el usuario está en la página de inicio/login
-    if (paginaActual.endsWith("index.html") || paginaActual === "/" || paginaActual.endsWith("login.html")) {
+    // Si tiene sesión iniciada y está en el inicio, lo mandamos a su panel correspondiente
+    if (paginaActual === "index.html" || paginaActual === "") {
       if (user.email === "tejondark@weboscura.com") {
-        console.log("¡Redirigiendo Administrador al panel!");
         window.location.href = "admin.html"; 
       } else {
         window.location.href = "dashboard.html";
@@ -18,9 +18,19 @@ firebase.auth().onAuthStateChanged((user) => {
     }
   } else {
     console.log("No hay ninguna sesión activa.");
-    // Si no está logueado y trata de entrar a la fuerza al panel, lo mandamos al inicio
-    if (paginaActual.endsWith("admin.html") || paginaActual.endsWith("dashboard.html")) {
+    // Si NO está logueado y la página actual NO es el index, lo regresamos al inicio obligatoriamente
+    if (paginaActual !== "index.html" && paginaActual !== "") {
       window.location.href = "index.html";
     }
   }
 });
+
+// Función global para que el botón de Cerrar Sesión funcione siempre en internet
+function cerrarSesionAdmin() {
+  firebase.auth().signOut().then(() => {
+    console.log("Sesión cerrada correctamente");
+    window.location.href = "index.html";
+  }).catch((error) => {
+    console.error("Error al cerrar sesión:", error);
+  });
+}
