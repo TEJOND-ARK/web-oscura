@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Vendedor - Web Anónima</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="./js/firebase.js"></script>
+    <script src="./js/app.js"></script>
+</head>
+<body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
+
+    <nav class="navbar is-dark">
+        <div class="navbar-brand">
+            <div class="navbar-item"><h1 class="title is-4 has-text-warning">💰 Panel de Vendedor</h1></div>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <button class="button is-danger is-small" onclick="firebase.auth().signOut()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="section">
+        <div class="container">
+            <div class="box notification is-warning is-light">
+                <h2 class="title is-3">Sección de Despacho y Ventas</h2>
+                <p class="subtitle is-5">Publica tus herramientas informáticas o servicios de red.</p>
+            </div>
+            
+            <div class="box has-background-dark has-text-white" style="border: 1px solid #ffdd57;">
+                <h3 class="title is-4 has-text-warning">Publicar Nuevo Producto</h3>
+                <div class="field">
+                    <label class="label has-text-white">Nombre del Servicio / Ítem</label>
+                    <input class="input is-warning has-background-black has-text-white" type="text" placeholder="Ej. Acceso VPN Offshore Dedicado">
+                </div>
+                <button class="button is-warning mt-3">Publicar Oferta</button>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
