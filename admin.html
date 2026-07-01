@@ -6,9 +6,12 @@
     <title>Panel TejónDark - Web Anónima</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="js/firebase.js"></script>
+    
+    <script src="./js/firebase.js"></script>
+    <script src="./js/app.js"></script>
 </head>
 <body style="background-color: #f5f5f5; min-height: 100vh;">
 
@@ -32,17 +35,20 @@
             <div class="columns is-multiline mt-4">
                 <div class="column is-4">
                     <div class="box" style="border-top: 4px solid #3273dc;">
-                        <p class="title is-4">Usuarios</p><button class="button is-info is-small is-light is-fullwidth">Gestionar Usuarios</button>
+                        <p class="title is-4">Usuarios</p>
+                        <button class="button is-info is-small is-light is-fullwidth">Gestionar Usuarios</button>
                     </div>
                 </div>
                 <div class="column is-4">
                     <div class="box" style="border-top: 4px solid #ffdd57;">
-                        <p class="title is-4">Productos</p><button class="button is-warning is-small is-light is-fullwidth">Ver Catálogo</button>
+                        <p class="title is-4">Productos</p>
+                        <button class="button is-warning is-small is-light is-fullwidth">Ver Catálogo</button>
                     </div>
                 </div>
                 <div class="column is-4">
                     <div class="box" style="border-top: 4px solid #f14668;">
-                        <p class="title is-4">Reportes</p><button class="button is-danger is-small is-light is-fullwidth">Ver Alertas</button>
+                        <p class="title is-4">Reportes</p>
+                        <button class="button is-danger is-small is-light is-fullwidth">Ver Alertas</button>
                     </div>
                 </div>
             </div>
@@ -50,17 +56,10 @@
     </main>
 
     <script>
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                if (user.email !== "tejondark@weboscura.com") {
-                    alert("Acceso denegado.");
-                    window.location.href = "index.html";
-                }
-            } else { window.location.href = "index.html"; }
-        });
-
         function cerrarSesionAdmin() {
-            firebase.auth().signOut().then(() => { window.location.href = "index.html"; });
+            firebase.auth().signOut().then(() => { 
+                window.location.href = "index.html"; 
+            });
         }
     </script>
 </body>
