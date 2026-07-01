@@ -9,7 +9,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="js/firebase.js"></script>
+    <script src="firebase.js"></script>
 </head>
 <body style="background-color: #f5f5f5; min-height: 100vh;">
 
@@ -32,7 +32,7 @@
     <main class="section">
         <div class="container">
             <div class="box notification is-black">
-                <h2 class="title is-3">Bienvenido, Administrador Global</h2>
+                <h2 class="title is-3">Bienvenido, Administrator Global</h2>
                 <p class="subtitle is-5">Control total del Marketplace de la Web Anónima.</p>
             </div>
 
@@ -43,4 +43,69 @@
                             <div class="media-left">
                                 <span class="icon is-large has-text-info"><i class="fas fa-users fa-2x"></i></span>
                             </div>
-                            <div class="media-content
+                            <div class="media-content">
+                                <p class="title is-4">Usuarios</p>
+                                <p class="subtitle is-6">Ver, moderar o banear cuentas registradas.</p>
+                                <button class="button is-info is-small is-light is-fullwidth">Gestionar Usuarios</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-4">
+                    <div class="box has-background-white" style="border-top: 4px solid #ffdd57;">
+                        <div class="media">
+                            <div class="media-left">
+                                <span class="icon is-large has-text-warning"><i class="fas fa-boxes fa-2x"></i></span>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-4">Productos</p>
+                                <p class="subtitle is-6">Moderar o eliminar anuncios del mercado.</p>
+                                <button class="button is-warning is-small is-light is-fullwidth">Ver Catálogo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-4">
+                    <div class="box has-background-white" style="border-top: 4px solid #f14668;">
+                        <div class="media">
+                            <div class="media-left">
+                                <span class="icon is-large has-text-danger"><i class="fas fa-exclamation-triangle fa-2x"></i></span>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-4">Reportes</p>
+                                <p class="subtitle is-6">Alertas urgentes enviadas por usuarios.</p>
+                                <button class="button is-danger is-small is-light is-fullwidth">Ver Alertas</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Filtro de seguridad: si un colado intenta entrar directo escribiendo "admin.html" en la URL
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                if (user.email !== "tejondark@weboscura.com") {
+                    alert("Acceso denegado. No eres el administrador.");
+                    window.location.href = "index.html"; // Lo bota a la tienda
+                }
+            } else {
+                window.location.href = "index.html"; // Si no inició sesión, lo bota
+            }
+        });
+
+        // Función del botón rojo para salir de forma limpia
+        function cerrarSesionAdmin() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = "index.html";
+            }).catch((error) => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        }
+    </script>
+</body>
+</html>
