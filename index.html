@@ -9,6 +9,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <script src="./js/firebase.js"></script>
     <script src="./js/app.js"></script>
@@ -26,7 +27,7 @@
                 <div class="buttons">
                     <a class="button is-danger is-light" onclick="abrirModalLogin()">
                         <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
-                        <span>Ingresar</span>
+                        <span>Ingresar / Registrarse</span>
                     </a>
                 </div>
             </div>
@@ -108,6 +109,19 @@
                         <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
                     </div>
                 </div>
+                
+                <div class="field">
+                    <label class="label has-text-white">Tipo de Cuenta (Solo para registrarse)</label>
+                    <div class="control has-icons-left">
+                        <div class="select is-danger is-fullwidth">
+                            <select id="registro-rol" class="has-background-black has-text-white" style="border: none; color: white !important;">
+                                <option value="cliente">Quiero Comprar (Cliente)</option>
+                                <option value="vendedor">Quiero Vender (Vendedor)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="buttons mt-5">
                     <button class="button is-danger is-fullwidth" onclick="ejecutarLogin()">Iniciar Sesión</button>
                     <button class="button is-dark is-fullwidth is-borderless" onclick="ejecutarRegistro()">¿No tienes cuenta? Regístrate aquí</button>
@@ -133,9 +147,21 @@
         function ejecutarRegistro() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
+            const rol = document.getElementById('registro-rol').value;
+
             if(email && pass) {
                 firebase.auth().createUserWithEmailAndPassword(email, pass)
-                    .then(() => { 
+                    .then((userCredential) => { 
+                        const uid = userCredential.user.uid;
+                        const db = firebase.firestore();
+                        
+                        // Guardamos el rol en Firestore usando el UID del usuario
+                        return db.collection("usuarios").doc(uid).set({
+                            email: email,
+                            rol: rol
+                        });
+                    })
+                    .then(() => {
                         alert("¡Cuenta creada con éxito!"); 
                         cerrarModalLogin();
                     })
