@@ -1,32 +1,26 @@
-// --- LÓGICA DE CONTROL DE SESIÓN ---
+// --- LÓGICA DE CONTROL DE SESIÓN INTELIGENTE ---
 
-// Esto revisa qué usuario está entrando a la página
 firebase.auth().onAuthStateChanged((user) => {
+  // Guardamos en qué página está el navegador actualmente
+  const paginaActual = window.location.pathname;
+
   if (user) {
-    console.log("Usuario detectado:", user.email);
+    console.log("Usuario con sesión activa:", user.email);
     
-    // 🕵️‍♂️ CONDICIÓN ESPECIAL PARA EL ADMINISTRADOR
-    if (user.email === "tejondark@weboscura.com") {
-      console.log("¡Acceso concedido como Administrador!");
-      // Te redirige automáticamente a la pantalla de admin
-      window.location.href = "admin.html"; 
-    } else {
-      // Si entra cualquier otro correo (Cliente o Vendedor), va al panel normal
-      window.location.href = "dashboard.html";
+    // 🕵️‍♂️ Solo redirige automáticamente si el usuario está en la página de inicio/login
+    if (paginaActual.endsWith("index.html") || paginaActual === "/" || paginaActual.endsWith("login.html")) {
+      if (user.email === "tejondark@weboscura.com") {
+        console.log("¡Redirigiendo Administrador al panel!");
+        window.location.href = "admin.html"; 
+      } else {
+        window.location.href = "dashboard.html";
+      }
     }
   } else {
-    // Si no hay usuario activo, se queda en la pantalla de inicio
     console.log("No hay ninguna sesión activa.");
+    // Si no está logueado y trata de entrar a la fuerza al panel, lo mandamos al inicio
+    if (paginaActual.endsWith("admin.html") || paginaActual.endsWith("dashboard.html")) {
+      window.location.href = "index.html";
+    }
   }
 });
-
-// Función para cuando le das clic al botón de iniciar sesión
-function iniciarSesion(email, password) {
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      console.log("Inicio de sesión exitoso");
-    })
-    .catch((error) => {
-      alert("Error al entrar: " + error.message);
-    });
-}
