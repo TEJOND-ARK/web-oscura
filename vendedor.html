@@ -20,6 +20,10 @@
             border-radius: 50%; padding: 2px 7px;
             font-size: 0.7rem; font-weight: bold;
         }
+        .chat-box {
+            max-height: 250px; overflow-y: auto;
+            background: #111; padding: 10px; border-radius: 6px;
+        }
     </style>
 </head>
 <body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
@@ -101,13 +105,29 @@
 
     <div id="modal-notif" class="modal">
         <div class="modal-background" onclick="cerrarModalNotif()"></div>
-        <div class="modal-content" style="padding: 15px;">
-            <div class="box has-background-dark has-text-white" style="border: 2px solid #48c78e;">
-                <h3 class="title is-4 has-text-success"><i class="fas fa-wallet"></i> Avisos de Liberación (Escrow)</h3>
-                <hr style="background-color: #444;">
-                <div id="cuerpo-notificaciones">
-                    <p class="has-text-grey">No hay avisos de pago del administrador todavía.</p>
+        <div class="modal-content" style="padding: 15px; max-width: 600px;">
+            <div class="box has-background-dark has-text-white" style="border: 2px solid #ffdd57;">
+                <h3 class="title is-4 has-text-warning"><i class="fas fa-wallet"></i> Avisos de Cobros e Intermediación</h3>
+                <hr style="background-color: #444; margin: 10px 0;">
+                
+                <div id="cuerpo-notificaciones" class="mb-4">
+                    <p class="has-text-grey">No hay avisos de pago todavía.</p>
                 </div>
+
+                <div id="seccion-respuesta-admin" style="display: none; border-top: 1px solid #444; padding-top: 15px;">
+                    <h4 class="subtitle is-6 has-text-success mb-2"><i class="fas fa-comments"></i> Canal directo de Respuesta con Admin:</h4>
+                    <div id="caja-chat-mensajes" class="chat-box mb-2"></div>
+                    
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input id="input-txt-respuesta" class="input is-small is-warning has-background-black has-text-white" type="text" placeholder="Escribe tu respuesta al administrador...">
+                        </div>
+                        <div class="control">
+                            <button class="button is-small is-success" onclick="enviarMensajeAlAdmin()">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+
                 <button class="button is-small is-light mt-3" onclick="cerrarModalNotif()">Cerrar</button>
             </div>
         </div>
@@ -116,12 +136,12 @@
     <script>
         let vUid = "";
         let imagenBinaria = "https://bulma.io/images/placeholders/1280x960.png";
+        let canalNotifActivoId = ""; // Guarda el ID de la alerta para enlazar las respuestas
 
         firebase.auth().onAuthStateChanged((user) => {
             if (user) { vUid = user.uid; cargarMisProductos(); escucharAlertasAdmin(); }
         });
 
-        // Transforma la foto local de la PC/Celular a un formato almacenable directamente
         function convertirFotoABase64(elemento) {
             if(elemento.files && elemento.files[0]) {
                 const archivo = elemento.files[0];
@@ -139,14 +159,11 @@
             if(!nom || isNaN(pre) || !des) { alert("Llena todos los campos."); return; }
 
             document.getElementById('btn-subir').classList.add('is-loading');
-
             firebase.firestore().collection("productos").add({
                 nombre: nom, precio: pre, descripcion: des, imagen: imagenBinaria,
                 vendedorId: vUid, fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                alert("¡Publicado en la base de datos!");
-                location.reload();
-            }).catch(e => { alert("Error: "+e.message); document.getElementById('btn-subir').classList.remove('is-loading'); });
+            }).then(() => { alert("¡Publicado con éxito!"); location.reload(); })
+            .catch(e => { alert("Error: "+e.message); document.getElementById('btn-subir').classList.remove('is-loading'); });
         }
 
         function cargarMisProductos() {
@@ -170,7 +187,6 @@
             });
         }
 
-        // Escucha en tiempo real los mensajes que TU le envías desde tu admin.html
         function escucharAlertasAdmin() {
             firebase.firestore().collection("notificaciones_vendedor")
                 .where("vendedorId", "==", vUid)
@@ -183,14 +199,56 @@
                         lista.innerHTML = "";
                         snap.forEach(doc => {
                             const n = doc.data();
+                            const idNotif = doc.id;
                             lista.innerHTML += `
-                                <div class="notification is-success is-light mb-2" style="border-left: 5px solid #48c78e">
-                                    <p class="is-size-7 has-text-grey">📅 ${n.fecha ? n.fecha.toDate().toLocaleString() : 'Reciente'}</p>
+                                <div class="notification is-light mb-2" style="border-left: 5px solid #ffdd57; color:#111;">
+                                    <p class="is-size-7 has-text-grey">📅 Admin dice:</p>
                                     <p class="is-size-5"><strong>${n.mensaje}</strong></p>
+                                    <button class="button is-small is-link mt-2" onclick="activarChatDeNotificacion('${idNotif}')">
+                                        <i class="fas fa-comments mr-1"></i> Responder al Admin
+                                    </button>
                                 </div>`;
                         });
                     }
                 });
+        }
+
+        // Abre la sección de chat abajo para esa notificación en específico
+        function activarChatDeNotificacion(notifId) {
+            canalNotifActivoId = notifId;
+            document.getElementById('seccion-respuesta-admin').style.display = "block";
+            
+            // Carga la conversación de respuestas en tiempo real
+            firebase.firestore().collection("notificaciones_vendedor").doc(notifId).collection("respuestas")
+                .orderBy("fecha", "asc")
+                .onSnapshot(snap => {
+                    const box = document.getElementById('caja-chat-mensajes');
+                    box.innerHTML = "";
+                    snap.forEach(doc => {
+                        const m = doc.data();
+                        const esAdmin = m.remitente === "admin";
+                        box.innerHTML += `
+                            <div class="mb-1 ${esAdmin ? 'has-text-left' : 'has-text-right'}">
+                                <span class="tag ${esAdmin ? 'is-danger' : 'is-success'}" style="max-width:80%; white-space: unset; height:auto; padding:5px 10px;">
+                                    <strong>${esAdmin ? 'Admin: ' : 'Tú: '}</strong> ${m.texto}
+                                </span>
+                            </div>`;
+                    });
+                    box.scrollTop = box.scrollHeight;
+                });
+        }
+
+        function enviarMensajeAlAdmin() {
+            const txt = document.getElementById('input-txt-respuesta').value.trim();
+            if(!txt || !canalNotifActivoId) return;
+
+            firebase.firestore().collection("notificaciones_vendedor").doc(canalNotifActivoId).collection("respuestas").add({
+                remitente: "vendedor",
+                texto: txt,
+                fecha: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('input-txt-respuesta').value = "";
+            });
         }
 
         function abrirModalNotif() { document.getElementById('modal-notif').classList.add('is-active'); }
