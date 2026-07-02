@@ -136,7 +136,7 @@
     <script>
         let vUid = "";
         let imagenBinaria = "https://bulma.io/images/placeholders/1280x960.png";
-        let canalNotifActivoId = ""; // Guarda el ID de la alerta para enlazar las respuestas
+        let canalNotifActivoId = ""; 
 
         firebase.auth().onAuthStateChanged((user) => {
             if (user) { 
@@ -166,19 +166,26 @@
             firebase.firestore().collection("productos").add({
                 nombre: nom, precio: pre, descripcion: des, imagen: imagenBinaria,
                 vendedorId: vUid, fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => { alert("¡Publicado con éxito!"); location.reload(); })
+            }).then(() => { 
+                alert("¡Publicado con éxito!"); 
+                // Limpiamos los inputs sin recargar bruscamente
+                document.getElementById('prod-nombre').value = "";
+                document.getElementById('prod-precio').value = "";
+                document.getElementById('prod-descripcion').value = "";
+                document.getElementById('nombre-foto-visual').innerText = "Ninguna foto";
+                imagenBinaria = "https://bulma.io/images/placeholders/1280x960.png";
+                document.getElementById('btn-subir').classList.remove('is-loading');
+            })
             .catch(e => { alert("Error: "+e.message); document.getElementById('btn-subir').classList.remove('is-loading'); });
         }
 
-        // Carga los productos usando columnas de Bulma fijas de alto contraste y anti-rotura
+        // Carga y limpia los productos en tiempo real (Cero congelamientos)
         function cargarMisProductos() {
             const contenedor = document.getElementById('lista-mis-productos');
             firebase.firestore().collection("productos")
                 .where("vendedorId", "==", vUid)
-                .orderBy("fechaCreacion", "desc")
-                .get()
-                .then(snap => {
-                    contenedor.innerHTML = snap.empty ? `<p class="has-text-grey-light has-text-centered py-4">Sin publicaciones activas.</p>` : "";
+                .onSnapshot(snap => {
+                    contenedor.innerHTML = snap.empty ? `<p class="has-text-grey-light has-text-centered py-4">No tienes productos publicados aún.</p>` : "";
                     
                     snap.forEach(doc => {
                         const d = doc.data();
@@ -190,7 +197,6 @@
                                             <img src="${d.imagen}" style="object-fit: cover; width: 64px; height: 64px; border-radius: 6px; border: 1px solid #ffdd57;">
                                         </figure>
                                     </div>
-                                    
                                     <div class="column is-9-desktop is-8-mobile">
                                         <h4 class="title is-5 has-text-warning mb-1" style="font-weight: 700;">
                                             ${d.nombre}
@@ -205,13 +211,14 @@
                                 </div>
                             </div>`;
                     });
+                }, error => {
+                    console.log("Error en tiempo real: ", error.message);
                 });
         }
 
         function escucharAlertasAdmin() {
             firebase.firestore().collection("notificaciones_vendedor")
                 .where("vendedorId", "==", vUid)
-                .orderBy("fecha", "desc")
                 .onSnapshot(snap => {
                     const cont = document.getElementById('contador-notif');
                     const lista = document.getElementById('cuerpo-notificaciones');
@@ -230,6 +237,9 @@
                                     </button>
                                 </div>`;
                         });
+                    } else {
+                        cont.style.display = "none";
+                        lista.innerHTML = `<p class="has-text-grey">No hay avisos de pago todavía.</p>`;
                     }
                 });
         }
@@ -257,7 +267,7 @@
                 });
         }
 
-        function enviarMessageAlAdmin() {
+        function enviarMensajeAlAdmin() {
             const txt = document.getElementById('input-txt-respuesta').value.trim();
             if(!txt || !canalNotifActivoId) return;
 
