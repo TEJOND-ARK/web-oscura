@@ -3,127 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel TejónDark - Web Anónima</title>
+    <title>Panel de Administrador - Web Anónima</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase.js"></script>
-    <script src="js/app.js"></script>
+    
+    <script src="./js/firebase.js"></script>
+    <script src="./js/app.js"></script>
 </head>
-<body style="background-color: #f5f5f5; min-height: 100vh;">
+<body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
 
     <nav class="navbar is-dark">
         <div class="navbar-brand">
-            <div class="navbar-item"><h1 class="title is-4 has-text-danger-light">🦡 Panel TejónDark (Intermediario)</h1></div>
+            <div class="navbar-item">
+                <h1 class="title is-4 has-text-danger"><i class="fas fa-user-shield mt-1"></i> Panel de Control Maestro (Admin)</h1>
+            </div>
         </div>
         <div class="navbar-end">
-            <div class="navbar-item"><button class="button is-danger is-small" onclick="firebase.auth().signOut()">Cerrar</button></div>
+            <div class="navbar-item">
+                <button class="button is-danger is-small" onclick="firebase.auth().signOut()">
+                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
         </div>
     </nav>
 
     <main class="section">
         <div class="container">
-            <div class="columns">
-                <div class="column is-7">
-                    <div class="box">
-                        <h3 class="title is-4 has-text-danger"><i class="fas fa-handshake"></i> Transacciones Escrow Activas</h3>
-                        <hr>
-                        <div id="contenedor-alertas">
-                            <p class="has-text-grey">Escuchando transacciones en tiempo real...</p>
+            
+            <div class="box notification is-danger is-light">
+                <h2 class="title is-3">Mediador y Custodia de Fondos (Escrow)</h2>
+                <p class="subtitle is-5">Aquí controlas las transacciones activas de la plataforma. Una vez que valides el abono del comprador, puedes notificar directamente a la campana del vendedor.</p>
+            </div>
+
+            <div class="columns is-desktop">
+                
+                <div class="column is-12">
+                    <div class="box has-background-black-bis has-text-white" style="border: 1px solid #ff3860;">
+                        <h3 class="title is-4 has-text-white mb-4">
+                            <i class="fas fa-exchange-alt has-text-danger"></i> Monitoreo de Transacciones en Tiempo Real
+                        </h3>
+                        
+                        <div class="table-container">
+                            <table class="table is-fullwidth is-dark is-hoverable has-background-dark">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #ff3860;">
+                                        <th class="has-text-danger">ID Operación</th>
+                                        <th class="has-text-danger">Producto / Ítem</th>
+                                        <th class="has-text-danger">Precio (S/.)</th>
+                                        <th class="has-text-danger">Vendedor ID</th>
+                                        <th class="has-text-danger">Estado Actual</th>
+                                        <th class="has-text-danger">Acciones del Sistema</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-transacciones">
+                                    <tr>
+                                        <td colspan="6" class="has-text-centered has-text-grey">Cargando operaciones desde Firestore...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="column is-5">
-                    <div id="box-chat-admin" class="box" style="border: 2px solid #333; display: none; background: #222; color: #fff;">
-                        <h3 class="title is-5 has-text-danger mb-2"><i class="fas fa-comments"></i> Sala de Mediación Privada</h3>
-                        <p class="is-size-7 text-grey-light mb-2">Canal ID: <span id="admin-chat-id"></span></p>
-                        
-                        <div id="admin-mensajes" class="mb-3" style="height: 250px; overflow-y: auto; background: #111; padding: 10px; border-radius: 4px;"></div>
-                        
-                        <div class="field has-addons">
-                            <div class="control is-expanded">
-                                <input id="admin-input" class="input is-danger has-background-black has-text-white" type="text" placeholder="Escribe instrucciones de pago...">
-                            </div>
-                            <div class="control">
-                                <button class="button is-danger" onclick="enviarMensajeAdmin()">Enviar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
 
     <script>
-        let transaccionSeleccionadaId = "";
-        let chatListener = null;
-
-        firebase.firestore().collection("transacciones").orderBy("fecha", "desc")
-        .onSnapshot((snapshot) => {
-            const contenedor = document.getElementById('contenedor-alertas');
-            contenedor.innerHTML = snapshot.empty ? `<p class="has-text-grey-light">No hay operaciones pendientes.</p>` : "";
-            
-            snapshot.forEach((doc) => {
-                const t = doc.data(); const id = doc.id;
-                contenedor.innerHTML += `
-                    <div class="notification is-light mb-3" style="border-left: 6px solid #f14668; padding: 15px;">
-                        <p>📦 <strong>Producto:</strong> ${t.productoNombre} | 💰 <strong>Monto:</strong> S/. ${t.precio}</p>
-                        <p class="is-size-7 text-grey">Comprador: ${t.compradorEmail} | Estado: <span class="tag is-warning is-light">${t.estado}</span></p>
-                        <div class="buttons mt-2">
-                            <button class="button is-danger is-small" onclick="abrirMediacion('${id}')"><i class="fas fa-comments mr-1"></i> Abrir Chat Interno</button>
-                            <button class="button is-success is-small" onclick="marcarCompletada('${id}')">Aprobar y Liquidar</button>
-                        </div>
-                    </div>`;
-            });
+        // Al iniciar, valida que las transacciones se pinten automáticamente
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // Verificar opcionalmente si es tu correo de administrador antes de escuchar
+                if(user.email === 'tejondark@weboscura.com') {
+                    escucharTransaccionesGlobales();
+                } else {
+                    alert("Acceso denegado. No eres el Administrador Supremo.");
+                    firebase.auth().signOut();
+                }
+            }
         });
 
-        function abrirMediacion(id) {
-            transaccionSeleccionadaId = id;
-            document.getElementById('admin-chat-id').innerText = id;
-            document.getElementById('box-chat-admin').style.display = "block";
-            
-            if(chatListener) chatListener(); // Desvincular chat anterior si existía
+        // Trae de Firestore todas las compras hechas por clientes
+        function escucharTransaccionesGlobales() {
+            const db = firebase.firestore();
+            const tabla = document.getElementById('tabla-transacciones');
 
-            chatListener = firebase.firestore().collection("mensajes")
-                .where("transaccionId", "==", transaccionSeleccionadaId)
-                .orderBy("fecha", "asc")
-                .onSnapshot((snapshot) => {
-                    const box = document.getElementById('admin-mensajes');
-                    box.innerHTML = "";
-                    snapshot.forEach((doc) => {
-                        const m = doc.data();
-                        const esAdmin = m.remitente.includes("Admin");
-                        box.innerHTML += `
-                            <div class="mb-2" style="text-align: ${esAdmin ? 'right' : 'left'};">
-                                <span class="tag ${esAdmin ? 'is-danger' : 'is-info'} is-light">
-                                    <strong>${m.remitente}:</strong> ${m.texto}
-                                </span>
-                            </div>`;
-                    });
-                    box.scrollTop = box.scrollHeight;
+            db.collection("transacciones")
+              .orderBy("fechaCreacion", "desc")
+              .onSnapshot((querySnapshot) => {
+                  tabla.innerHTML = "";
+                  
+                  if (querySnapshot.empty) {
+                      tabla.innerHTML = `<tr><td colspan="6" class="has-text-centered has-text-grey-light">No hay compras ni transacciones registradas todavía.</td></tr>`;
+                      return;
+                  }
+
+                  querySnapshot.forEach((doc) => {
+                      const t = doc.data();
+                      const idDoc = doc.id;
+                      
+                      tabla.innerHTML += `
+                          <tr style="border-bottom: 1px solid #444;">
+                              <td class="is-size-7" style="vertical-align: middle;"><code>${idDoc}</code></td>
+                              <td style="vertical-align: middle;"><strong>${t.productoNombre || 'Servicio Informático'}</strong></td>
+                              <td class="has-text-success style="vertical-align: middle;"><strong>S/. ${t.precio}</strong></td>
+                              <td class="is-size-7" style="vertical-align: middle;">${t.vendedorId}</td>
+                              <td style="vertical-align: middle;">
+                                  <span class="tag ${t.estado === 'Completado e Internamente Liquidado' ? 'is-success' : 'is-warning'}">
+                                      ${t.estado || 'Pendiente de Pago'}
+                                  </span>
+                              </td>
+                              <td style="vertical-align: middle;">
+                                  <div class="buttons">
+                                      <button class="button is-warning is-small" onclick="alertarVendedorManual('${t.vendedorId}', '${t.productoNombre}')">
+                                          <span class="icon"><i class="fas fa-bell"></i></span>
+                                          <span>Notificar a Campana</span>
+                                      </button>
+                                      
+                                      <button class="button is-success is-small" onclick="liquidarTransaccion('${idDoc}')" ${t.estado === 'Completado e Internamente Liquidado' ? 'disabled' : ''}>
+                                          <span class="icon"><i class="fas fa-check-double"></i></span>
+                                          <span>Liquidar</span>
+                                      </button>
+                                  </div>
+                              </td>
+                          </tr>
+                      `;
+                  });
+              }, (error) => {
+                  console.error("Error en escucha en tiempo real de Admin:", error);
+              });
+        }
+
+        // FUNCIÓN CLAVE: Abre un prompt para escribir lo que quieras y lo dispara a las campanas del panel vendedor.html
+        function alertarVendedorManual(vendedorId, productoNombre) {
+            const mensajePredeterminado = `Hola, ya tengo el pago del ítem "${productoNombre}". Hay que coordinar el envío de inmediato.`;
+            const mensajeAdmin = prompt("Escribe el mensaje personalizado que deseas inyectar en la campana del vendedor:", mensajePredeterminado);
+            
+            if (mensajeAdmin && mensajeAdmin.trim() !== "") {
+                const db = firebase.firestore();
+                
+                db.collection("notificaciones_vendedor").add({
+                    vendedorId: vendedorId,
+                    mensaje: mensajeAdmin.trim(),
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    alert("¡Alerta inyectada con éxito! Al vendedor le aparecerá el número (+1) en su campana superior.");
+                })
+                .catch((error) => {
+                    alert("Error al enviar mensaje a la campana: " + error.message);
                 });
+            }
         }
 
-        function enviarMensajeAdmin() {
-            const txt = document.getElementById('admin-input').value.trim();
-            if(!txt) return;
-            
-            firebase.firestore().collection("mensajes").add({
-                transaccionId: transaccionSeleccionadaId,
-                remitente: "Admin Supremo",
-                texto: txt,
-                fecha: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => { document.getElementById('admin-input').value = ""; });
-        }
-
-        function marcarCompletada(id) {
-            if(confirm("¿Confirmas la recepción de los Soles y que el vendedor entregó el producto?")) {
-                firebase.firestore().collection("transacciones").doc(id).update({
+        // Cambia el estado del documento a completado para llevar tu orden contable interna
+        function liquidarTransaccion(idDoc) {
+            if(confirm("¿Estás seguro de marcar esta venta como liquidada internamente?")) {
+                firebase.firestore().collection("transacciones").doc(idDoc).update({
                     estado: "Completado e Internamente Liquidado"
-                }).then(() => alert("Transacción finalizada de forma segura."));
+                }).then(() => {
+                    alert("Transacción actualizada a estado liquidado.");
+                });
             }
         }
     </script>
