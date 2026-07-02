@@ -86,7 +86,7 @@
 
                         <div class="field">
                             <label class="label has-text-white">Descripción Detallada</label>
-                            <textarea id="prod-descripcion" class="textarea is-warning has-background-black has-text-white" rows="3" placeholder="para sus narices en 4k"></textarea>
+                            <textarea id="prod-descripcion" class="textarea is-warning has-background-black has-text-white" rows="3" placeholder="Escribe los detalles aquí..."></textarea>
                         </div>
 
                         <button id="btn-subir" class="button is-warning is-fullwidth mt-4" onclick="publicarOferta()"><strong>Publicar Oferta</strong></button>
@@ -96,7 +96,7 @@
                 <div class="column is-7-desktop">
                     <div class="box has-background-black-bis has-text-white" style="border: 1px solid #555;">
                         <h3 class="title is-4 has-text-white mb-4"><i class="fas fa-list-ul has-text-warning"></i> Mis Productos en la Tienda</h3>
-                        <div id="lista-mis-productos"><p class="has-text-grey">Cargando...</p></div>
+                        <div id="lista-mis-productos"><p class="has-text-grey">Cargando publicaciones...</p></div>
                     </div>
                 </div>
             </div>
@@ -139,7 +139,11 @@
         let canalNotifActivoId = ""; // Guarda el ID de la alerta para enlazar las respuestas
 
         firebase.auth().onAuthStateChanged((user) => {
-            if (user) { vUid = user.uid; cargarMisProductos(); escucharAlertasAdmin(); }
+            if (user) { 
+                vUid = user.uid; 
+                cargarMisProductos(); 
+                escucharAlertasAdmin(); 
+            }
         });
 
         function convertirFotoABase64(elemento) {
@@ -166,25 +170,42 @@
             .catch(e => { alert("Error: "+e.message); document.getElementById('btn-subir').classList.remove('is-loading'); });
         }
 
+        // Carga los productos usando columnas de Bulma fijas de alto contraste y anti-rotura
         function cargarMisProductos() {
             const contenedor = document.getElementById('lista-mis-productos');
-            firebase.firestore().collection("productos").where("vendedorId", "==", vUid).get().then(snap => {
-                contenedor.innerHTML = snap.empty ? `<p class="has-text-grey">Sin publicaciones.</p>` : "";
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    contenedor.innerHTML += `
-                        <div class="box has-background-dark mb-2">
-                            <div class="media">
-                                <div class="media-left"><figure class="image is-64x64"><img src="${d.imagen}" style="object-fit:cover; height:100%; border-radius:4px;"></figure></div>
-                                <div class="media-content">
-                                    <p class="title is-5 has-text-warning mb-0">${d.nombre}</p>
-                                    <p class="subtitle is-6 has-text-success mb-1">S/. ${d.precio}</p>
-                                    <p class="is-size-7 text-grey-light">${d.descripcion}</p>
+            firebase.firestore().collection("productos")
+                .where("vendedorId", "==", vUid)
+                .orderBy("fechaCreacion", "desc")
+                .get()
+                .then(snap => {
+                    contenedor.innerHTML = snap.empty ? `<p class="has-text-grey-light has-text-centered py-4">Sin publicaciones activas.</p>` : "";
+                    
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        contenedor.innerHTML += `
+                            <div class="box has-background-dark mb-4" style="border: 1px solid #444; padding: 15px;">
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-3-desktop is-4-mobile">
+                                        <figure class="image is-64x64" style="margin: 0 auto;">
+                                            <img src="${d.imagen}" style="object-fit: cover; width: 64px; height: 64px; border-radius: 6px; border: 1px solid #ffdd57;">
+                                        </figure>
+                                    </div>
+                                    
+                                    <div class="column is-9-desktop is-8-mobile">
+                                        <h4 class="title is-5 has-text-warning mb-1" style="font-weight: 700;">
+                                            ${d.nombre}
+                                        </h4>
+                                        <p class="subtitle is-6 has-text-white mb-2" style="font-weight: bold;">
+                                            Precio: <span class="has-text-success">S/. ${d.precio}</span>
+                                        </p>
+                                        <p class="is-size-6 has-text-white" style="word-break: break-word; line-height: 1.4;">
+                                            ${d.descripcion}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>`;
+                            </div>`;
+                    });
                 });
-            });
         }
 
         function escucharAlertasAdmin() {
@@ -201,10 +222,10 @@
                             const n = doc.data();
                             const idNotif = doc.id;
                             lista.innerHTML += `
-                                <div class="notification is-light mb-2" style="border-left: 5px solid #ffdd57; color:#111;">
-                                    <p class="is-size-7 has-text-grey">📅 Admin dice:</p>
-                                    <p class="is-size-5"><strong>${n.mensaje}</strong></p>
-                                    <button class="button is-small is-link mt-2" onclick="activarChatDeNotificacion('${idNotif}')">
+                                <div class="notification has-background-black-bis mb-3" style="border-left: 5px solid #ffdd57; border-top: 1px solid #333; border-bottom: 1px solid #333; border-right: 1px solid #333; padding: 15px;">
+                                    <p class="is-size-7 has-text-grey-light mb-1">📅 Admin dice:</p>
+                                    <p class="is-size-5 has-text-white mb-2"><strong>${n.mensaje}</strong></p>
+                                    <button class="button is-small is-warning is-outlined mt-1" onclick="activarChatDeNotificacion('${idNotif}')">
                                         <i class="fas fa-comments mr-1"></i> Responder al Admin
                                     </button>
                                 </div>`;
@@ -213,12 +234,10 @@
                 });
         }
 
-        // Abre la sección de chat abajo para esa notificación en específico
         function activarChatDeNotificacion(notifId) {
             canalNotifActivoId = notifId;
             document.getElementById('seccion-respuesta-admin').style.display = "block";
             
-            // Carga la conversación de respuestas en tiempo real
             firebase.firestore().collection("notificaciones_vendedor").doc(notifId).collection("respuestas")
                 .orderBy("fecha", "asc")
                 .onSnapshot(snap => {
@@ -238,7 +257,7 @@
                 });
         }
 
-        function enviarMensajeAlAdmin() {
+        function enviarMessageAlAdmin() {
             const txt = document.getElementById('input-txt-respuesta').value.trim();
             if(!txt || !canalNotifActivoId) return;
 
