@@ -15,10 +15,16 @@
     <script src="./js/app.js"></script>
     <style>
         .chat-container {
-            background-color: #1a1a1a; border: 1px solid #ff3860; border-radius: 6px; padding: 15px;
+            background-color: #1a1a1a; border: 2px solid #ff3860; border-radius: 6px; padding: 15px; position: sticky; top: 20px;
         }
         .chat-box {
-            height: 250px; overflow-y: auto; background-color: #0b0b0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;
+            height: 280px; overflow-y: auto; background-color: #0b0b0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;
+        }
+        .item-historial {
+            background: #141414; border: 1px solid #333; padding: 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;
+        }
+        .item-historial:hover {
+            border-color: #ff3860; background: #1c1c1c;
         }
     </style>
 </head>
@@ -34,19 +40,35 @@
     </nav>
 
     <main class="section">
-        <div class="container">
+        <div class="container is-fluid">
             <div class="columns is-desktop">
                 
                 <div class="column is-7-desktop">
-                    <h3 class="title is-4 has-text-white mb-4"><i class="fas fa-shopping-bag has-text-danger"></i> Catálogo (Precios en S/.)</h3>
-                    <div id="lista-productos" class="columns is-multiline">
-                        <p class="column is-12 has-text-grey">Cargando productos...</p>
+                    <h3 class="title is-4 has-text-white mb-4"><i class="fas fa-shopping-bag has-text-danger"></i> Catálogo de Productos</h3>
+                    <div id="lista-productos" class="columns is-multiline mb-6">
+                        <p class="column is-12 has-text-grey">Cargando catálogo...</p>
+                    </div>
+
+                    <hr style="background-color: #333;">
+                    <h3 class="title is-4 has-text-white mb-4"><i class="fas fa-inbox has-text-danger"></i> Mis Chats de Compras Guardadas</h3>
+                    <div id="historial-compras" class="is-flex is-flex-direction-column gap-2">
+                        <p class="has-text-grey">No tienes compras iniciadas aún.</p>
                     </div>
                 </div>
 
                 <div class="column is-5-desktop">
+                    <div id="wrapper-vacio-chat" class="box has-background-dark has-text-centered py-6" style="border: 1px dashed #444;">
+                        <p class="has-text-grey is-size-5">
+                            <i class="fas fa-comments fa-2x mb-3"></i><br>
+                            Selecciona un chat del historial o compra un producto para iniciar la conversación.
+                        </p>
+                    </div>
+
                     <div id="panel-chat-escrow" class="chat-container" style="display: none;">
-                        <h3 class="title is-5 has-text-danger mb-1"><i class="fas fa-comments"></i> Chat Seguro Escrow (Con Admin)</h3>
+                        <div class="is-flex is-justify-content-between is-align-items-center mb-1">
+                            <h3 class="title is-5 has-text-danger mb-0"><i class="fas fa-comments"></i> Chat Seguro Escrow</h3>
+                            <span id="chat-estado" class="tag is-warning">Pendiente</span>
+                        </div>
                         <p class="is-size-7 has-text-grey-light mb-3">ID Transacción: <span id="chat-id-transaccion" class="has-text-weight-bold">---</span></p>
                         
                         <div id="caja-mensajes-escrow" class="chat-box"></div>
@@ -68,15 +90,18 @@
 
     <script>
         let transaccionActivaId = "";
+        let desuscribirChat = null;
 
         firebase.auth().onAuthStateChanged(user => {
             if(user) {
                 renderizarCatalogo();
+                cargarHistorialCompras(user.uid);
             } else {
                 window.location.href = "index.html";
             }
         });
 
+        // 1. CARGA EL CATÁLOGO DE PRODUCTOS EN TIEMPO REAL
         function renderizarCatalogo() {
             const cont = document.getElementById('lista-productos');
             firebase.firestore().collection("productos").onSnapshot(snap => {
@@ -93,8 +118,8 @@
                                     </figure>
                                 </div>
                                 <div class="card-content" style="padding: 15px;">
-                                    <h4 class="title is-5 has-text-danger mb-2" style="word-break:break-word;">${p.nombre}</h4>
-                                    <p class="is-size-6 has-text-grey-light mb-3" style="word-break:break-word; min-height: 40px;">${p.descripcion}</p>
+                                    <h4 class="title is-5 has-text-danger mb-2">${p.nombre}</h4>
+                                    <p class="is-size-6 has-text-grey-light mb-3" style="min-height: 40px;">${p.descripcion}</p>
                                     <div class="is-flex is-justify-content-between is-align-items-center">
                                         <span class="tag is-success is-medium">S/. ${p.precio}</span>
                                         <button class="button is-danger is-small" onclick="comprarProducto('${doc.id}', '${p.nombre}', ${p.precio}, '${p.vendedorId}')">Comprar</button>
@@ -106,10 +131,39 @@
             });
         }
 
+        // 2. NUEVA FUNCIÓN: CARGA LAS COMPRAS QUE YA HIZO EL USUARIO PARA SU BANDEJA DE ENTRADA
+        function cargarHistorialCompras(compradorUid) {
+            const historialCont = document.getElementById('historial-compras');
+            
+            firebase.firestore().collection("transacciones")
+                .where("compradorId", "==", compradorUid)
+                .onSnapshot(snap => {
+                    if(snap.empty) {
+                        historialCont.innerHTML = `<p class="has-text-grey">No tienes compras ni chats activos aún.</p>`;
+                        return;
+                    }
+                    historialCont.innerHTML = "";
+                    snap.forEach(doc => {
+                        const t = doc.data();
+                        historialCont.innerHTML += `
+                            <div class="item-historial mb-2 is-flex is-justify-content-between is-align-items-center" onclick="seleccionarChat('${doc.id}', '${t.productoNombre}', '${t.estadoActual}')">
+                                <div class="is-flex is-align-items-center">
+                                    <span class="icon has-text-danger mr-3"><i class="fas fa-envelope-open-text fa-lg"></i></span>
+                                    <div>
+                                        <p class="has-text-weight-bold has-text-white mb-0">${t.productoNombre}</p>
+                                        <p class="is-size-7 has-text-grey-light">ID: ${doc.id.substring(0,8)}... | S/. ${t.precio}</p>
+                                    </div>
+                                </div>
+                                <span class="tag ${t.estadoActual === 'Pendiente de Pago' ? 'is-warning' : 'is-success'} is-small">${t.estadoActual || 'Pendiente'}</span>
+                            </div>`;
+                    });
+                });
+        }
+
+        // 3. SE EJECUTA AL DAR CLIC EN COMPRAR (PRIMERA VEZ)
         function comprarProducto(productoId, nombreProd, precioProd, vendedorId) {
             const compradorUid = firebase.auth().currentUser.uid;
 
-            // 1. CREA LA TRANSACCIÓN PARA QUE EL ADMIN LA RECIBA AL INSTANTE
             firebase.firestore().collection("transacciones").add({
                 productoId: productoId,
                 productoNombre: nombreProd,
@@ -120,26 +174,35 @@
                 fechaApertura: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then((docRef) => {
-                transaccionActivaId = docRef.id;
-                document.getElementById('chat-id-transaccion').innerText = transaccionActivaId;
-                document.getElementById('panel-chat-escrow').style.display = "block";
+                const nuevaTransaccionId = docRef.id;
 
-                // 2. CREA EL MENSAJE INICIAL EN LA COLECTA GENERAL DE MENSAJES
-                return firebase.firestore().collection("mensajes").add({
-                    transaccionId: transaccionActivaId,
+                // Enviar primer mensaje automático del sistema
+                firebase.firestore().collection("mensajes").add({
+                    transaccionId: nuevaTransaccionId,
                     remitente: "sistema",
-                    texto: `Sistema (Admin): ¡Hola! Iniciaste la orden por "${nombreProd}". En breve el Administrador revisará los fondos.`,
+                    texto: `Sistema: Iniciaste la orden por "${nombreProd}". Envía tus dudas aquí.`,
                     fecha: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            })
-            .then(() => {
-                escucharChatEscrow(transaccionActivaId);
+
+                // Seleccionar automáticamente el chat creado
+                seleccionarChat(nuevaTransaccionId, nombreProd, "Pendiente de Pago");
             })
             .catch(err => alert("Error en orden: " + err.message));
         }
 
-        function escucharChatEscrow(tId) {
-            firebase.firestore().collection("mensajes")
+        // 4. CONECTA Y SINCRONIZA LA CONVERSACIÓN SELECCIONADA EN TIEMPO REAL
+        function seleccionarChat(tId, nombreProd, estadoActual) {
+            transaccionActivaId = tId;
+            
+            document.getElementById('wrapper-vacio-chat').style.display = "none";
+            document.getElementById('panel-chat-escrow').style.display = "block";
+            document.getElementById('chat-id-transaccion').innerText = tId;
+            document.getElementById('chat-estado').innerText = estadoActual;
+
+            if (desuscribirChat) { desuscribirChat(); }
+
+            // Escuchar mensajes de este chat específico
+            desuscribirChat = firebase.firestore().collection("mensajes")
                 .where("transaccionId", "==", tId)
                 .orderBy("fecha", "asc")
                 .onSnapshot(snap => {
@@ -148,15 +211,16 @@
                     snap.forEach(doc => {
                         const m = doc.data();
                         const esMio = m.remitente === firebase.auth().currentUser.uid;
-                        const esSistema = m.remitente === "sistema" || m.remitente === "admin";
+                        const esAdminOSistema = m.remitente === "admin" || m.remitente === "sistema";
                         
                         let align = esMio ? 'has-text-right' : 'has-text-left';
-                        let color = esMio ? 'is-danger' : (esSistema ? 'is-warning' : 'is-light');
+                        let color = esMio ? 'is-danger' : (m.remitente === "sistema" ? 'is-warning' : 'is-dark');
+                        let prefijo = esMio ? '' : (m.remitente === "admin" ? '<strong>Admin:</strong> ' : '');
 
                         box.innerHTML += `
                             <div class="mb-2 ${align}">
-                                <span class="tag ${color}" style="max-width: 85%; white-space: unset; height: auto; padding: 6px 10px; text-align: left;">
-                                    ${m.texto}
+                                <span class="tag ${color}" style="max-width: 85%; white-space: unset; height: auto; padding: 6px 10px; text-align: left; display: inline-block;">
+                                    ${prefijo}${m.texto}
                                 </span>
                             </div>`;
                     });
@@ -164,6 +228,7 @@
                 });
         }
 
+        // 5. ENVÍA EL MENSAJE
         function enviarMensajeEscrow() {
             const txt = document.getElementById('input-msg-escrow').value.trim();
             if(!txt || !transaccionActivaId) return;
