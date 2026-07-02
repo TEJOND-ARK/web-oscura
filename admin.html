@@ -6,11 +6,9 @@
     <title>Panel TejónDark - Web Anónima</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
     <script src="js/firebase.js"></script>
     <script src="js/app.js"></script>
 </head>
@@ -18,38 +16,41 @@
 
     <nav class="navbar is-dark">
         <div class="navbar-brand">
-            <div class="navbar-item"><h1 class="title is-4 has-text-danger-light">🦡 Panel TejónDark</h1></div>
+            <div class="navbar-item"><h1 class="title is-4 has-text-danger-light">🦡 Panel TejónDark (Intermediario)</h1></div>
         </div>
         <div class="navbar-end">
-            <div class="navbar-item">
-                <button class="button is-danger is-small" onclick="cerrarSesionAdmin()">Cerrar Sesión</button>
-            </div>
+            <div class="navbar-item"><button class="button is-danger is-small" onclick="firebase.auth().signOut()">Cerrar</button></div>
         </div>
     </nav>
 
     <main class="section">
         <div class="container">
-            <div class="box notification is-black">
-                <h2 class="title is-3">Bienvenido, Administrador Global</h2>
-                <p class="subtitle is-5">Control total del Marketplace de la Web Anónima.</p>
-            </div>
-            <div class="columns is-multiline mt-4">
-                <div class="column is-4">
-                    <div class="box" style="border-top: 4px solid #3273dc;">
-                        <p class="title is-4">Usuarios</p>
-                        <button class="button is-info is-small is-light is-fullwidth">Gestionar Usuarios</button>
+            <div class="columns">
+                <div class="column is-7">
+                    <div class="box">
+                        <h3 class="title is-4 has-text-danger"><i class="fas fa-handshake"></i> Transacciones Escrow Activas</h3>
+                        <hr>
+                        <div id="contenedor-alertas">
+                            <p class="has-text-grey">Escuchando transacciones en tiempo real...</p>
+                        </div>
                     </div>
                 </div>
-                <div class="column is-4">
-                    <div class="box" style="border-top: 4px solid #ffdd57;">
-                        <p class="title is-4">Productos</p>
-                        <button class="button is-warning is-small is-light is-fullwidth">Ver Catálogo</button>
-                    </div>
-                </div>
-                <div class="column is-4">
-                    <div class="box" style="border-top: 4px solid #f14668;">
-                        <p class="title is-4">Reportes</p>
-                        <button class="button is-danger is-small is-light is-fullwidth">Ver Alertas</button>
+
+                <div class="column is-5">
+                    <div id="box-chat-admin" class="box" style="border: 2px solid #333; display: none; background: #222; color: #fff;">
+                        <h3 class="title is-5 has-text-danger mb-2"><i class="fas fa-comments"></i> Sala de Mediación Privada</h3>
+                        <p class="is-size-7 text-grey-light mb-2">Canal ID: <span id="admin-chat-id"></span></p>
+                        
+                        <div id="admin-mensajes" class="mb-3" style="height: 250px; overflow-y: auto; background: #111; padding: 10px; border-radius: 4px;"></div>
+                        
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <input id="admin-input" class="input is-danger has-background-black has-text-white" type="text" placeholder="Escribe instrucciones de pago...">
+                            </div>
+                            <div class="control">
+                                <button class="button is-danger" onclick="enviarMensajeAdmin()">Enviar</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,10 +58,73 @@
     </main>
 
     <script>
-        function cerrarSesionAdmin() {
-            firebase.auth().signOut().then(() => { 
-                window.location.href = "index.html"; 
+        let transaccionSeleccionadaId = "";
+        let chatListener = null;
+
+        firebase.firestore().collection("transacciones").orderBy("fecha", "desc")
+        .onSnapshot((snapshot) => {
+            const contenedor = document.getElementById('contenedor-alertas');
+            contenedor.innerHTML = snapshot.empty ? `<p class="has-text-grey-light">No hay operaciones pendientes.</p>` : "";
+            
+            snapshot.forEach((doc) => {
+                const t = doc.data(); const id = doc.id;
+                contenedor.innerHTML += `
+                    <div class="notification is-light mb-3" style="border-left: 6px solid #f14668; padding: 15px;">
+                        <p>📦 <strong>Producto:</strong> ${t.productoNombre} | 💰 <strong>Monto:</strong> S/. ${t.precio}</p>
+                        <p class="is-size-7 text-grey">Comprador: ${t.compradorEmail} | Estado: <span class="tag is-warning is-light">${t.estado}</span></p>
+                        <div class="buttons mt-2">
+                            <button class="button is-danger is-small" onclick="abrirMediacion('${id}')"><i class="fas fa-comments mr-1"></i> Abrir Chat Interno</button>
+                            <button class="button is-success is-small" onclick="marcarCompletada('${id}')">Aprobar y Liquidar</button>
+                        </div>
+                    </div>`;
             });
+        });
+
+        function abrirMediacion(id) {
+            transaccionSeleccionadaId = id;
+            document.getElementById('admin-chat-id').innerText = id;
+            document.getElementById('box-chat-admin').style.display = "block";
+            
+            if(chatListener) chatListener(); // Desvincular chat anterior si existía
+
+            chatListener = firebase.firestore().collection("mensajes")
+                .where("transaccionId", "==", transaccionSeleccionadaId)
+                .orderBy("fecha", "asc")
+                .onSnapshot((snapshot) => {
+                    const box = document.getElementById('admin-mensajes');
+                    box.innerHTML = "";
+                    snapshot.forEach((doc) => {
+                        const m = doc.data();
+                        const esAdmin = m.remitente.includes("Admin");
+                        box.innerHTML += `
+                            <div class="mb-2" style="text-align: ${esAdmin ? 'right' : 'left'};">
+                                <span class="tag ${esAdmin ? 'is-danger' : 'is-info'} is-light">
+                                    <strong>${m.remitente}:</strong> ${m.texto}
+                                </span>
+                            </div>`;
+                    });
+                    box.scrollTop = box.scrollHeight;
+                });
+        }
+
+        function enviarMensajeAdmin() {
+            const txt = document.getElementById('admin-input').value.trim();
+            if(!txt) return;
+            
+            firebase.firestore().collection("mensajes").add({
+                transaccionId: transaccionSeleccionadaId,
+                remitente: "Admin Supremo",
+                texto: txt,
+                fecha: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => { document.getElementById('admin-input').value = ""; });
+        }
+
+        function marcarCompletada(id) {
+            if(confirm("¿Confirmas la recepción de los Soles y que el vendedor entregó el producto?")) {
+                firebase.firestore().collection("transacciones").doc(id).update({
+                    estado: "Completado e Internamente Liquidado"
+                }).then(() => alert("Transacción finalizada de forma segura."));
+            }
         }
     </script>
 </body>
