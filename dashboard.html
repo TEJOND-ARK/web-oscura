@@ -3,24 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Cliente - Web Anónima</title>
+    <title>Mercado - Web Anónima</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="./js/firebase.js"></script>
-    <script src="./js/app.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/app.js"></script>
 </head>
 <body class="has-background-black-ter" style="min-height: 100vh; color: #fff;">
 
     <nav class="navbar is-black">
         <div class="navbar-brand">
-            <a class="navbar-item" href="index.html">
-                <strong class="has-text-danger is-size-4">🥷 Web Anónima</strong>
-            </a>
+            <div class="navbar-item"><strong class="has-text-danger is-size-4">🥷 Mercado Anónimo</strong></div>
         </div>
         <div class="navbar-end">
             <div class="navbar-item">
@@ -29,17 +25,131 @@
         </div>
     </nav>
 
-    <main class="section">
-        <div class="container has-text-centered mt-6">
-            <div class="box has-background-dark has-text-white" style="border: 1px solid #ff3860;">
-                <h1 class="title is-2 has-text-danger">🛒 ¡Bienvenido a tu Panel de Cliente!</h1>
-                <p class="subtitle is-5 mt-2">Aquí podrás ver tus compras encriptadas y el historial de transacciones.</p>
-                <div class="tags is-centered mt-4">
-                    <span class="tag is-success is-medium">Modo Comprador</span>
-                    <span class="tag is-black is-medium">Cifrado AES-256</span>
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-7">
+                    <h2 class="title is-4 has-text-white mb-4"><i class="fas fa-shopping-bag has-text-danger"></i> Catálogo (Precios en S/.)</h2>
+                    <div id="catalogo-productos" class="columns is-multiline">
+                        <p class="column is-12 has-text-grey">Cargando catálogo...</p>
+                    </div>
+                </div>
+
+                <div class="column is-5">
+                    <div id="box-chat" class="box has-background-dark" style="border: 1px solid #ff3860; display: none;">
+                        <h3 class="title is-5 has-text-danger mb-2"><i class="fas fa-comments"></i> Chat Seguro Escrow (Con Admin)</h3>
+                        <p class="is-size-7 has-text-grey-light mb-2">ID Transacción: <span id="chat-transaccion-id"></span></p>
+                        
+                        <div id="chat-mensajes" class="mb-3" style="height: 250px; overflow-y: auto; background: #111; padding: 10px; border-radius: 4px;">
+                            </div>
+                        
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <input id="chat-input" class="input is-danger has-background-black has-text-white" type="text" placeholder="Escribe un mensaje privado...">
+                            </div>
+                            <div class="control">
+                                <button class="button is-danger" onclick="enviarMensaje()">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
+    </section>
+
+    <script>
+        let transaccionActivaId = "";
+        let compradorUid = "";
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) { 
+                compradorUid = user.uid;
+                cargarCatálogo(); 
+            }
+        });
+
+        function cargarCatálogo() {
+            const catalogo = document.getElementById('catalogo-productos');
+            firebase.firestore().collection("productos").get().then((snapshot) => {
+                catalogo.innerHTML = snapshot.empty ? `<p class="column is-12 has-text-grey">No hay productos disponibles.</p>` : "";
+                snapshot.forEach((doc) => {
+                    const id = doc.id; const d = doc.data();
+                    catalogo.innerHTML += `
+                        <div class="column is-6">
+                            <div class="card has-background-dark has-text-white">
+                                <div class="card-image"><figure class="image is-4by3"><img src="${d.imagen}" style="object-fit:cover;"></figure></div>
+                                <div class="card-content">
+                                    <p class="title is-5 has-text-danger mb-1">${d.nombre}</p>
+                                    <p class="is-size-7 has-text-grey-light mb-2">${d.descripcion}</p>
+                                    <div class="is-flex is-justify-content-between is-align-items-center">
+                                        <strong class="has-text-success">S/. ${d.precio}</strong>
+                                        <button class="button is-danger is-small" onclick="solicitarCompra('${id}', '${d.nombre}', '${d.vendedorId}', ${d.precio})">Comprar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        function solicitarCompra(prodId, prodNombre, vendId, precio) {
+            const email = firebase.auth().currentUser.email;
+            
+            firebase.firestore().collection("transacciones").add({
+                productoId: prodId, productoNombre: prodNombre, vendedorId: vendId,
+                compradorId: compradorUid, compradorEmail: email, precio: precio,
+                estado: "Pendiente (Escrow)", fecha: firebase.firestore.FieldValue.serverTimestamp()
+            }).then((docRef) => {
+                transaccionActivaId = docRef.id;
+                document.getElementById('chat-transaccion-id').innerText = transaccionActivaId;
+                document.getElementById('box-chat').style.display = "block";
+                
+                // Mensaje automático del sistema para iniciar la conversación
+                firebase.firestore().collection("mensajes").add({
+                    transaccionId: transaccionActivaId,
+                    remitente: "Sistema (Admin)",
+                    texto: `¡Hola! Iniciaste la orden por "${prodNombre}". En breve el Administrador revisará los fondos en Soles (S/.) para procesar tu orden de forma segura.`,
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                escucharChat();
+            });
+        }
+
+        function escucharChat() {
+            firebase.firestore().collection("mensajes")
+                .where("transaccionId", "==", transaccionActivaId)
+                .orderBy("fecha", "asc")
+                .onSnapshot((snapshot) => {
+                    const box = document.getElementById('chat-mensajes');
+                    box.innerHTML = "";
+                    snapshot.forEach((doc) => {
+                        const m = doc.data();
+                        const esAdmin = m.remitente.includes("Admin");
+                        box.innerHTML += `
+                            <div class="mb-2" style="text-align: ${esAdmin ? 'left' : 'right'};">
+                                <span class="tag ${esAdmin ? 'is-danger' : 'is-info'} is-light">
+                                    <strong>${m.remitente}:</strong> ${m.texto}
+                                </span>
+                            </div>`;
+                    });
+                    box.scrollTop = box.scrollHeight;
+                });
+        }
+
+        function enviarMensaje() {
+            const txt = document.getElementById('chat-input').value.trim();
+            if(!txt) return;
+            
+            firebase.firestore().collection("mensajes").add({
+                transaccionId: transaccionActivaId,
+                remitente: "Comprador",
+                texto: txt,
+                fecha: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('chat-input').value = "";
+            });
+        }
+    </script>
 </body>
 </html>
