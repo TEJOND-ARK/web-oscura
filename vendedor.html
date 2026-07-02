@@ -31,18 +31,128 @@
         <div class="container">
             <div class="box notification is-warning is-light">
                 <h2 class="title is-3">Sección de Despacho y Ventas</h2>
-                <p class="subtitle is-5">Publica tus herramientas informáticas o servicios de red.</p>
+                <p class="subtitle is-5">Publica tus herramientas informáticas o servicios de red en <strong>Soles Peruanos (S/.)</strong>.</p>
             </div>
             
-            <div class="box has-background-dark has-text-white" style="border: 1px solid #ffdd57;">
-                <h3 class="title is-4 has-text-warning">Publicar Nuevo Producto</h3>
-                <div class="field">
-                    <label class="label has-text-white">Nombre del Servicio / Ítem</label>
-                    <input class="input is-warning has-background-black has-text-white" type="text" placeholder="Ej. Acceso VPN Offshore Dedicado">
+            <div class="columns is-desktop">
+                <div class="column is-5-desktop">
+                    <div class="box has-background-dark has-text-white" style="border: 1px solid #ffdd57;">
+                        <h3 class="title is-4 has-text-warning mb-4"><i class="fas fa-plus-circle"></i> Publicar Nuevo Producto</h3>
+                        
+                        <div class="field">
+                            <label class="label has-text-white">Nombre del Servicio / Ítem</label>
+                            <div class="control">
+                                <input id="prod-nombre" class="input is-warning has-background-black has-text-white" type="text" placeholder="Ej. Acceso VPN Offshore Dedicado">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label has-text-white">Precio (S/.)</label>
+                            <div class="control has-icons-left">
+                                <input id="prod-precio" class="input is-warning has-background-black has-text-white" type="number" placeholder="Ej. 150">
+                                <span class="icon is-small is-left has-text-warning"><strong style="line-height:2.4;">S/.</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label has-text-white">URL de la Foto / Miniatura</label>
+                            <div class="control">
+                                <input id="prod-imagen" class="input is-warning has-background-black has-text-white" type="url" placeholder="https://enlace-de-tu-foto.com/imagen.png">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label has-text-white">Descripción Detallada</label>
+                            <div class="control">
+                                <textarea id="prod-descripcion" class="textarea is-warning has-background-black has-text-white" rows="3" placeholder="Detalla qué incluye tu producto..."></textarea>
+                            </div>
+                        </div>
+
+                        <button class="button is-warning is-fullwidth mt-3" onclick="guardarProducto()"><strong>Publicar Oferta</strong></button>
+                    </div>
                 </div>
-                <button class="button is-warning mt-3">Publicar Oferta</button>
+
+                <div class="column is-7-desktop">
+                    <div class="box has-background-black-bis has-text-white" style="border: 1px solid #555;">
+                        <h3 class="title is-4 has-text-white mb-4"><i class="fas fa-list-ul has-text-warning"></i> Mis Productos en la Tienda</h3>
+                        <div id="lista-mis-productos">
+                            <p class="has-text-grey">Cargando tus publicaciones...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
+
+    <script>
+        let vendedorUid = "";
+
+        // Detecta al vendedor autenticado
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                vendedorUid = user.uid;
+                cargarMisProductos();
+            }
+        });
+
+        function guardarProducto() {
+            const nombre = document.getElementById('prod-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('prod-precio').value);
+            const imagen = document.getElementById('prod-imagen').value.trim() || "https://bulma.io/images/placeholders/1280x960.png";
+            const descripcion = document.getElementById('prod-descripcion').value.trim();
+
+            if (!nombre || isNaN(precio) || !descripcion) {
+                alert("Completa los campos obligatorios: Nombre, Precio y Descripción.");
+                return;
+            }
+
+            firebase.firestore().collection("productos").add({
+                nombre: nombre,
+                precio: precio,
+                imagen: imagen,
+                descripcion: descripcion,
+                vendedorId: vendedorUid,
+                vendedorEmail: firebase.auth().currentUser.email,
+                fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                alert("¡Producto publicado con éxito!");
+                document.getElementById('prod-nombre').value = "";
+                document.getElementById('prod-precio').value = "";
+                document.getElementById('prod-imagen').value = "";
+                document.getElementById('prod-descripcion').value = "";
+                cargarMisProductos();
+            })
+            .catch((err) => {
+                alert("Error al guardar: " + err.message);
+            });
+        }
+
+        function cargarMisProductos() {
+            const contenedor = document.getElementById('lista-mis-productos');
+            firebase.firestore().collection("productos")
+                .where("vendedorId", "==", vendedorUid)
+                .get()
+                .then((snapshot) => {
+                    contenedor.innerHTML = snapshot.empty ? `<p class="has-text-grey-light">No tienes productos publicados aún.</p>` : "";
+                    snapshot.forEach((doc) => {
+                        const d = doc.data();
+                        contenedor.innerHTML += `
+                            <div class="box has-background-dark mb-3" style="border-left: 5px solid #ffdd57;">
+                                <div class="media">
+                                    <div class="media-left">
+                                        <figure class="image is-64x64"><img src="${d.imagen}" style="object-fit:cover; height:100%;"></figure>
+                                    </div>
+                                    <div class="media-content">
+                                        <p class="title is-5 has-text-warning mb-1">${d.nombre}</p>
+                                        <p class="subtitle is-6 has-text-success mb-1"><strong>S/. ${d.precio.toFixed(2)}</strong></p>
+                                        <p class="is-size-7 has-text-grey-light">${d.descripcion}</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                });
+        }
+    </script>
 </body>
 </html>
